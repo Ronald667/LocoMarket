@@ -1,0 +1,6 @@
+{
+  "name": "LocoMarket - Local Secondhand Marketplace",
+  "description": "Buy and sell secondhand items locally with integrated secure escrow payments, real-time chat, automated location filtering, and AI smart listing assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
