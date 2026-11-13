@@ -34,7 +34,11 @@ import {
   Truck,
   Paperclip,
   Upload,
-  FileText
+  FileText,
+  CheckCircle,
+  Award,
+  Zap,
+  Gift
 } from 'lucide-react';
 
 interface Item {
@@ -107,6 +111,14 @@ interface UserDocument {
   name: string;
   size: string;
   date: string;
+}
+
+interface Badge {
+  id: string;
+  name: string;
+  desc: string;
+  icon: string;
+  unlocked: boolean;
 }
 
 const INITIAL_ITEMS: Item[] = [
@@ -237,6 +249,30 @@ export default function App() {
   // Selected Item Modal & Safety Hub
   const [activeItem, setActiveItem] = useState<Item | null>(null);
   const [safetyModalOpen, setSafetyModalOpen] = useState(false);
+
+  // Seller Verification System State
+  const [isUserVerified, setIsUserVerified] = useState(true);
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [idDocumentName, setIdDocumentName] = useState<string | null>('SA_Smart_ID_Card.pdf');
+  const [socialLinks, setSocialLinks] = useState({
+    whatsapp: '+27 82 555 1234',
+    instagram: '@thabom_sa',
+    facebook: 'Thabo Mokoena ZA'
+  });
+  const [tempWhatsapp, setTempWhatsapp] = useState(socialLinks.whatsapp);
+  const [tempInstagram, setTempInstagram] = useState(socialLinks.instagram);
+  const [tempFacebook, setTempFacebook] = useState(socialLinks.facebook);
+
+  // Gamification & Loyalty State
+  const [userXp, setUserXp] = useState(1420);
+  const [userCoins, setUserCoins] = useState(350);
+  const [userLevel, setUserLevel] = useState('Community Pro (Level 3)');
+  const [unlockedBadges, setUnlockedBadges] = useState<Badge[]>([
+    { id: 'b1', name: 'Top Seller', desc: 'Completed 10+ successful local sales', icon: '🏆', unlocked: true },
+    { id: 'b2', name: 'Savvy Shopper', desc: 'Snagged items below market value', icon: '💎', unlocked: true },
+    { id: 'b3', name: 'Eco Warrior', desc: 'Prevented 50kg of landfill waste', icon: '🌿', unlocked: true },
+    { id: 'b4', name: 'Lightning Responder', desc: 'Average chat reply under 15m', icon: '⚡', unlocked: false }
+  ]);
 
   // User Storage / Documents Vault State
   const [userDocuments, setUserDocuments] = useState<UserDocument[]>([
@@ -475,23 +511,27 @@ export default function App() {
         rating: 5.0,
         reviewsCount: 1,
         joined: 'Today',
-        verified: true
+        verified: isUserVerified
       },
       createdAt: 'Just now'
     };
     setItems([newItem, ...items]);
+    setUserXp(prev => prev + 50);
+    setUserCoins(prev => prev + 15);
     setSellModalOpen(false);
     setNewTitle('');
     setNewPrice('');
     setNewDescription('');
     setNewImage(null);
-    alert('Item listed securely in South Africa! Verified by LocoMarket Trust system.');
+    alert('Item listed successfully! You earned +50 XP and +15 LocoCoins.');
   };
 
   const handleCompleteCheckout = () => {
     setPaymentStep('processing');
     setTimeout(() => {
       setPaymentStep('success');
+      setUserXp(prev => prev + 200);
+      setUserCoins(prev => prev + 50);
       if (activeItem) {
         const shippingCost = selectedCourier ? selectedCourier.price : 0;
         const newTx: Transaction = {
@@ -611,14 +651,14 @@ export default function App() {
               <div className="absolute right-0 top-0 w-1/3 h-full opacity-10 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:16px_16px]" />
               <div className="relative z-10 max-w-2xl">
                 <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-medium text-emerald-300 mb-4">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>ZAR Escrow Protected · Local SA Courier Quotes</span>
+                  <Award className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Earn XP & LocoCoins with Every Trade</span>
                 </div>
                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
-                  South Africa's safest local marketplace & courier hub.
+                  South Africa's gamified secondhand marketplace.
                 </h1>
                 <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                  Every transaction is secured with ZAR Escrow, verified ID badges, and instant local courier quotes (Pudo, The Courier Guy, PostNet).
+                  Level up your trader status, collect milestone badges ('Top Seller', 'Eco Warrior'), and redeem LocoCoins for free courier vouchers.
                 </p>
 
                 {/* SEARCH & LOCATION CONTROLS */}
@@ -731,7 +771,7 @@ export default function App() {
                   Verified South African Listings ({filteredItems.length})
                 </h2>
                 <span className="text-xs text-emerald-700 font-medium flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4" /> Escrow & Courier Quote Active
+                  <ShieldCheck className="w-4 h-4" /> Escrow & Verified Sellers Only
                 </span>
               </div>
 
@@ -808,6 +848,9 @@ export default function App() {
                             <div className="flex items-center gap-1.5 text-xs text-slate-500">
                               <img src={item.seller.avatar} alt={item.seller.name} className="w-5 h-5 rounded-full object-cover" />
                               <span className="truncate max-w-[90px]">{item.seller.name}</span>
+                              {item.seller.verified && (
+                                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" title="Verified Seller" />
+                              )}
                             </div>
                           </div>
                         </div>
@@ -824,9 +867,98 @@ export default function App() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">User Dashboard & Secure ZAR Escrow</h1>
-                <p className="text-xs text-slate-500">Track your South African listings, ZAR escrow orders, and local device document storage.</p>
+                <h1 className="text-2xl font-bold text-slate-900">User Dashboard & Gamification Rewards</h1>
+                <p className="text-xs text-slate-500">Track your trader level, XP, LocoCoins balance, and verified seller status.</p>
               </div>
+            </div>
+
+            {/* GAMIFICATION & LOYALTY HUB CARD */}
+            <div className="bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl space-y-6 border border-emerald-500/20">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-inner">
+                    <Award className="w-9 h-9" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h2 className="text-lg font-bold">{userLevel}</h2>
+                      <span className="bg-emerald-500/30 text-emerald-300 text-[10px] px-2.5 py-0.5 rounded-full font-bold">
+                        {userXp} XP Total
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300">Complete sales, buy items, and reply fast to earn XP and level up!</p>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 flex items-center gap-4">
+                  <div className="text-2xl">🪙</div>
+                  <div>
+                    <span className="text-[10px] text-emerald-300 font-semibold block uppercase tracking-wider">LocoCoins Balance</span>
+                    <span className="text-xl font-bold">{userCoins} Coins</span>
+                  </div>
+                  <button
+                    onClick={() => alert("Redeemed 200 LocoCoins for a Free Pudo Locker Shipping Voucher! Code: PUDO-FREE-ZA")}
+                    className="ml-2 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition-colors shadow-sm whitespace-nowrap"
+                  >
+                    Redeem Voucher
+                  </button>
+                </div>
+              </div>
+
+              {/* XP Progress Bar */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-slate-300">
+                  <span>Level Progress (1,420 / 2,500 XP to Legend)</span>
+                  <span>57%</span>
+                </div>
+                <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-[57%]" />
+                </div>
+              </div>
+
+              {/* Milestone Badges Showcase */}
+              <div>
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3">Milestone Trophies & Badges</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {unlockedBadges.map(badge => (
+                    <div key={badge.id} className={`p-3 rounded-2xl border flex items-center gap-3 ${badge.unlocked ? 'bg-white/10 border-emerald-500/40 text-white' : 'bg-white/5 border-white/10 text-slate-400'}`}>
+                      <span className="text-2xl">{badge.icon}</span>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold truncate">{badge.name}</h4>
+                        <span className="text-[10px] text-slate-300 truncate block">{badge.unlocked ? 'Unlocked' : 'Locked'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* SELLER VERIFICATION STATUS CARD */}
+            <div className="bg-gradient-to-r from-emerald-900 to-slate-900 rounded-2xl p-6 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <ShieldCheck className="w-8 h-8" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-base font-bold">Seller Verification Status</h3>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isUserVerified ? 'bg-emerald-500 text-white animate-pulse' : 'bg-amber-500 text-white'}`}>
+                      {isUserVerified ? 'Verified Seller (Active)' : 'Pending Verification'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    {isUserVerified
+                      ? 'Your SA Smart ID and social profiles are verified. Your listings feature the pulsing trust badge.'
+                      : 'Upload your ID document or link your social profiles to unlock the Verified Seller badge.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setVerificationModalOpen(true)}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors whitespace-nowrap"
+              >
+                {isUserVerified ? 'Manage Verification' : 'Verify Account Now'}
+              </button>
             </div>
 
             {/* METRICS ROW */}
@@ -848,8 +980,8 @@ export default function App() {
               </div>
               <div className="bg-white p-5 rounded-2xl border border-slate-200">
                 <span className="text-xs text-slate-500 font-medium block mb-1">Seller Rating</span>
-                <span className="text-2xl font-bold text-slate-900">4.9</span>
-                <span className="text-[11px] text-slate-500 block mt-1">128 verified reviews</span>
+                <span className="text-2xl font-bold text-slate-900">5.0</span>
+                <span className="text-[11px] text-slate-500 block mt-1">Verified SA Merchant</span>
               </div>
             </div>
 
@@ -858,13 +990,13 @@ export default function App() {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-emerald-600" /> Device & Storage Vault (Verification & Receipts)
+                    <FileText className="w-4 h-4 text-emerald-600" /> Device & Storage Vault (ID & Verification Documents)
                   </h3>
                   <p className="text-xs text-slate-500">Upload and manage local ID proofs, certificates, or payment receipts securely.</p>
                 </div>
                 <label className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-colors flex items-center gap-1.5">
                   <Upload className="w-3.5 h-3.5" />
-                  Upload from Device
+                  Upload ID / Doc
                   <input
                     type="file"
                     className="hidden"
@@ -878,7 +1010,11 @@ export default function App() {
                           date: 'Just now'
                         };
                         setUserDocuments([newDoc, ...userDocuments]);
-                        alert(`Successfully uploaded "${file.name}" from local storage to your Vault.`);
+                        setIdDocumentName(file.name);
+                        setIsUserVerified(true);
+                        setUserXp(prev => prev + 100);
+                        setUserCoins(prev => prev + 30);
+                        alert(`Successfully uploaded "${file.name}"! +100 XP and +30 Coins earned.`);
                       }
                     }}
                   />
@@ -1088,6 +1224,108 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* SELLER VERIFICATION MODAL */}
+      {verificationModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-6 h-6 text-emerald-600" />
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Seller Verification System</h3>
+                  <p className="text-xs text-slate-500">Get your 'Verified Seller' badge to increase buyer trust.</p>
+                </div>
+              </div>
+              <button onClick={() => setVerificationModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-700">
+              {/* Step 1: ID Document */}
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-emerald-600" /> 1. Official ID Document
+                  </h4>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">Verified</span>
+                </div>
+                <p className="text-slate-600">Upload your South African Smart ID Card, Green ID Book, or Passport.</p>
+                <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="font-medium text-slate-800 truncate">{idDocumentName || 'No ID uploaded'}</span>
+                  <label className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold cursor-pointer hover:bg-slate-800">
+                    Replace ID
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.png"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setIdDocumentName(file.name);
+                          setIsUserVerified(true);
+                          alert(`ID document "${file.name}" uploaded successfully!`);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Step 2: Social Media Links */}
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-3">
+                <h4 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" /> 2. Link Social Media Profiles
+                </h4>
+                <p className="text-slate-600">Linking your active social accounts increases trust and profile credibility.</p>
+
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-600 block mb-1">WhatsApp Business Number</label>
+                    <input
+                      type="text"
+                      value={tempWhatsapp}
+                      onChange={(e) => setTempWhatsapp(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Instagram Handle</label>
+                    <input
+                      type="text"
+                      value={tempInstagram}
+                      onChange={(e) => setTempInstagram(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Facebook / Marketplace Profile</label>
+                    <input
+                      type="text"
+                      value={tempFacebook}
+                      onChange={(e) => setTempFacebook(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setSocialLinks({ whatsapp: tempWhatsapp, instagram: tempInstagram, facebook: tempFacebook });
+                setIsUserVerified(true);
+                setVerificationModalOpen(false);
+                alert("Seller verification updated successfully! Your 'Verified Seller' badge is now active on your profile and listings.");
+              }}
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+            >
+              Save & Activate 'Verified Seller' Badge
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ITEM DETAILS MODAL */}
       {activeItem && (
