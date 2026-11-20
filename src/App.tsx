@@ -38,7 +38,8 @@ import {
   CheckCircle,
   Award,
   Zap,
-  Gift
+  Gift,
+  HelpCircle
 } from 'lucide-react';
 
 interface Item {
@@ -379,6 +380,47 @@ export default function App() {
       ]);
       setCalculatingCourier(false);
     }, 500);
+  };
+
+  const handleAskSellerFAQ = (questionText: string) => {
+    if (!activeItem) return;
+    const existing = conversations.find(c => c.itemId === activeItem.id && c.otherUser === activeItem.seller.name);
+    const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const newMsg: Message = {
+      id: Date.now().toString(),
+      sender: 'buyer',
+      text: questionText,
+      timestamp: nowTime
+    };
+
+    if (existing) {
+      const updated = {
+        ...existing,
+        lastMessage: questionText,
+        unread: false,
+        messages: [...existing.messages, newMsg]
+      };
+      setConversations(conversations.map(c => c.id === existing.id ? updated : c));
+      setActiveChat(updated);
+    } else {
+      const newConv: Conversation = {
+        id: `c-${Date.now()}`,
+        itemId: activeItem.id,
+        itemTitle: activeItem.title,
+        itemImage: activeItem.image,
+        otherUser: activeItem.seller.name,
+        otherAvatar: activeItem.seller.avatar,
+        lastMessage: questionText,
+        unread: false,
+        messages: [
+          { id: `m-${Date.now()}`, sender: 'buyer', text: questionText, timestamp: nowTime }
+        ]
+      };
+      setConversations([newConv, ...conversations]);
+      setActiveChat(newConv);
+    }
+    setActiveItem(null);
+    setCurrentTab('messages');
   };
 
   // Conversations State
@@ -1429,6 +1471,34 @@ export default function App() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* PRE-DEFINED 'ASK SELLER' FAQ SECTION */}
+                  <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 space-y-2.5 mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                        <HelpCircle className="w-4 h-4 text-emerald-600" /> Ask Seller (Quick FAQ)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-800">Select a common question to instantly start a secure chat with the seller:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        'Is it still available?',
+                        'What is the lowest price?',
+                        'Can I view it today?',
+                        'Are you willing to negotiate?'
+                      ].map((q, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleAskSellerFAQ(q)}
+                          className="text-left bg-white hover:bg-emerald-100/60 border border-emerald-200 rounded-xl p-2.5 text-xs font-medium text-emerald-950 transition-all shadow-2xs flex items-center justify-between group"
+                        >
+                          <span className="truncate pr-1">{q}</span>
+                          <span className="text-emerald-600 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Secure Checkout & Chat Action Buttons */}
